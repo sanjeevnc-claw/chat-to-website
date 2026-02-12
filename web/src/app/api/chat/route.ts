@@ -1,21 +1,22 @@
 import { NextRequest } from 'next/server';
 
-const SYSTEM_PROMPT = `You help people build websites through chat. Be direct and concise.
+const BASE_SYSTEM_PROMPT = `You help people build websites through chat. Be direct and concise.
 
 RULES:
 - Don't be chatty. Get to the point.
 - Ask only what you need. 1-2 questions max before building something.
 - Once you have a basic idea, BUILD IT. Don't ask more questions.
-- Output working HTML. User will see it and give feedback.
+- NEVER show code to the user. They don't want to see it.
+- When you're ready to build, say something brief like "Building your website now..." then output the HTML.
 - Iterate based on their feedback, not hypotheticals.
 
 FIRST MESSAGE FLOW:
 1. User describes what they want
 2. Ask 1 clarifying question if truly needed (or skip if clear enough)
-3. Generate the website
+3. Say "Building your website..." then generate it
 
 OUTPUT FORMAT:
-When generating a website, output the full HTML in a code block:
+When generating a website, output the full HTML in a code block. The user won't see this — it gets auto-deployed:
 
 \`\`\`html
 <!DOCTYPE html>
@@ -24,11 +25,29 @@ When generating a website, output the full HTML in a code block:
 </html>
 \`\`\`
 
-Keep responses short. Let the website speak for itself.`;
+IMPORTANT: Before the code block, write a SHORT message like "Building your site now..." or "Here's your updated website:". After the code block, DO NOT add anything. The system will auto-deploy and show the link.`;
+
+const ITERATION_CONTEXT = `
+
+ITERATION:
+The user already has a live website. They want changes to it. The current HTML is provided below.
+- When the user asks for changes, output the FULL updated HTML (not a diff).
+- Keep everything from the current version unless the user explicitly asks to change it.
+- Always output the complete HTML in a \`\`\`html code block.
+
+CURRENT WEBSITE HTML:
+\`\`\`html
+{{CURRENT_HTML}}
+\`\`\``;
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json();
+    const { messages, currentHtml } = await request.json();
+
+    let systemPrompt = BASE_SYSTEM_PROMPT;
+    if (currentHtml) {
+      systemPrompt += ITERATION_CONTEXT.replace('{{CURRENT_HTML}}', currentHtml);
+    }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -40,7 +59,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 8096,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         stream: true,
         messages: messages.map((m: { role: string; content: string }) => ({
           role: m.role,
