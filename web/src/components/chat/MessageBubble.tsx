@@ -1,6 +1,7 @@
 'use client';
 
-import { Sparkles, User, Image as ImageIcon, FileText } from 'lucide-react';
+import { User, Image as ImageIcon, FileText } from 'lucide-react';
+import { AgentRole, AGENT_INFO } from '@/lib/agents';
 
 export interface Attachment {
   name: string;
@@ -14,6 +15,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   attachments?: Attachment[];
+  agent?: AgentRole;
 }
 
 interface MessageBubbleProps {
@@ -22,17 +24,18 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
+  const agentInfo = message.agent ? AGENT_INFO[message.agent] : null;
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       {/* Avatar */}
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm ${
         isUser ? 'bg-primary' : 'bg-primary/10'
       }`}>
         {isUser ? (
           <User className="w-4 h-4 text-primary-foreground" />
         ) : (
-          <Sparkles className="w-4 h-4 text-primary" />
+          agentInfo?.emoji || '🤖'
         )}
       </div>
 
