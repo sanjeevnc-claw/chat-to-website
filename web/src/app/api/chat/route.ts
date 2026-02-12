@@ -1,77 +1,106 @@
 import { NextRequest } from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
-import { 
-  AGENT_PROMPTS, 
-  AgentRole, 
-  buildAgentContext,
-  Requirements,
-  DesignSpec 
-} from '@/lib/agents';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
+const SYSTEM_PROMPT = `You help people build websites through chat. Be direct and concise.
 
-export async function POST(req: NextRequest) {
+RULES:
+- Don't be chatty. Get to the point.
+- Ask only what you need. 1-2 questions max before building something.
+- Once you have a basic idea, BUILD IT. Don't ask more questions.
+- Output working HTML. User will see it and give feedback.
+- Iterate based on their feedback, not hypotheticals.
+
+FIRST MESSAGE FLOW:
+1. User describes what they want
+2. Ask 1 clarifying question if truly needed (or skip if clear enough)
+3. Generate the website
+
+OUTPUT FORMAT:
+When generating a website, output the full HTML in a code block:
+
+\`\`\`html
+<!DOCTYPE html>
+<html>
+...complete working website...
+</html>
+\`\`\`
+
+Keep responses short. Let the website speak for itself.`;
+
+export async function POST(request: NextRequest) {
   try {
-    const { messages, agentState } = await req.json();
+    const { messages } = await request.json();
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return Response.json(
-        { error: 'API key not configured' },
-        { status: 500 }
-      );
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8096,
+        system: SYSTEM_PROMPT,
+        stream: true,
+        messages: messages.map((m: { role: string; content: string }) => ({
+          role: m.role,
+          content: m.content,
+        })),
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Anthropic API error:', error);
+      return new Response(JSON.stringify({ error: 'API request failed' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
-
-    // Determine current agent based on state
-    const currentAgent: AgentRole = agentState?.currentAgent || 'product_manager';
-    
-    // Build system prompt with agent personality + context
-    let systemPrompt = AGENT_PROMPTS[currentAgent];
-    
-    // Add context from previous agents
-    const context = buildAgentContext(agentState || {});
-    if (context) {
-      systemPrompt += `\n\n## Context from Previous Stages:\n${context}`;
-    }
-
-    // Convert messages to Anthropic format
-    const anthropicMessages = messages.map((msg: { role: string; content: string }) => ({
-      role: msg.role as 'user' | 'assistant',
-      content: msg.content,
-    }));
 
     // Stream the response
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+        const reader = response.body?.getReader();
+        if (!reader) {
+          controller.close();
+          return;
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = '';
+
         try {
-          // Send agent info first
-          const agentInfo = { agent: currentAgent };
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ agentInfo })}\n\n`)
-          );
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-          const response = await anthropic.messages.create({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 8096,
-            system: systemPrompt,
-            messages: anthropicMessages,
-            stream: true,
-          });
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
-          for await (const event of response) {
-            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-              const chunk = encoder.encode(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
-              controller.enqueue(chunk);
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') continue;
+
+                try {
+                  const parsed = JSON.parse(data);
+                  if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify({ content: parsed.delta.text })}\n\n`)
+                    );
+                  }
+                } catch {
+                  // Skip invalid JSON
+                }
+              }
             }
           }
-
+        } finally {
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
-        } catch (error) {
-          console.error('Streaming error:', error);
-          controller.error(error);
         }
       },
     });
@@ -80,14 +109,14 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       },
     });
   } catch (error) {
     console.error('Chat API error:', error);
-    return Response.json(
-      { error: 'Failed to process request' },
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }

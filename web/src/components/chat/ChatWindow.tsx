@@ -15,7 +15,7 @@ export default function ChatWindow({ onCodeGenerated }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hey! I'm here to help you build a website. What kind of site do you need?"
+      content: "What do you want to build?"
     }
   ]);
   const [input, setInput] = useState('');
