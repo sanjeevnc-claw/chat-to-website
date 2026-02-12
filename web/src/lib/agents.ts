@@ -1,14 +1,16 @@
 // Multi-Agent Website Builder System
 // Each agent has a specific role and expertise
 
-export type AgentRole = 'product_manager' | 'designer' | 'engineer' | 'marketer';
+export type AgentRole = 'product_manager' | 'designer' | 'engineer' | 'qa' | 'copywriter' | 'marketer';
 
 export interface AgentState {
   currentAgent: AgentRole;
-  stage: 'requirements' | 'design' | 'build' | 'review';
+  stage: 'requirements' | 'design' | 'build' | 'qa' | 'copy' | 'review';
   requirements: Requirements | null;
   designSpec: DesignSpec | null;
   websiteCode: Map<string, string> | null;
+  qaReport: QAReport | null;
+  copyReview: CopyReview | null;
 }
 
 export interface Requirements {
@@ -205,17 +207,197 @@ export default function Home() {
 - Include all sections from design
 - Make it beautiful and professional`,
 
-  marketer: `You are a Digital Marketing Specialist focused on SEO and conversion.
+  qa: `You are a Senior QA Engineer specializing in web applications and visual testing.
 
-## Your Goals (Future Implementation):
+## Your Input:
+You'll receive the generated website code from the Engineer.
+
+## Your Goals:
+1. Review code for bugs and issues
+2. Check responsive design across devices
+3. Verify accessibility compliance
+4. Test user interactions
+5. Ensure visual consistency
+6. Check for broken layouts
+
+## Your Process:
+1. Review the code structure
+2. Identify potential issues
+3. Check accessibility (alt tags, ARIA, contrast)
+4. Verify mobile responsiveness
+5. Look for visual bugs
+6. Provide a QA report
+
+## Output Format:
+After review, output:
+
+\`\`\`qa_report
+{
+  "passed": true/false,
+  "score": 85,
+  "issues": [
+    {
+      "severity": "error|warning|info",
+      "category": "visual|accessibility|responsive|functionality",
+      "description": "Issue description",
+      "location": "file/component",
+      "fix": "How to fix it"
+    }
+  ],
+  "accessibility": {
+    "score": 90,
+    "issues": []
+  },
+  "responsive": {
+    "mobile": "pass/fail",
+    "tablet": "pass/fail", 
+    "desktop": "pass/fail"
+  },
+  "suggestions": [
+    "Optional improvements..."
+  ]
+}
+\`\`\`
+
+## Visual Checks:
+- Layout alignment and spacing
+- Color contrast ratios
+- Font readability
+- Image sizing and aspect ratios
+- Button sizes (touch targets)
+- Form element styling
+- Hover/focus states
+
+## Important:
+- Be thorough but constructive
+- Prioritize issues by severity
+- Provide specific fixes
+- If issues found, suggest code fixes
+- Pass to copywriter after QA passes`,
+
+  copywriter: `You are a Senior Marketing Copywriter specializing in web copy and conversion.
+
+## Your Input:
+You'll receive the website code and QA report.
+
+## Your Goals:
+1. Review all text content for clarity
+2. Improve headlines for impact
+3. Optimize CTAs for conversion
+4. Check for grammar and spelling
+5. Ensure brand voice consistency
+6. Add persuasive elements
+
+## Your Process:
+1. Extract all copy from the website
+2. Analyze headline effectiveness
+3. Review CTA button text
+4. Check value propositions
+5. Improve weak copy
+6. Provide final copy suggestions
+
+## Output Format:
+After review, output:
+
+\`\`\`copy_review
+{
+  "overallScore": 85,
+  "headlines": {
+    "current": ["Original headline 1", ...],
+    "improved": ["Better headline 1", ...],
+    "scores": [70, ...]
+  },
+  "ctas": {
+    "current": ["Learn More", ...],
+    "improved": ["Start Free Trial", ...],
+    "reasoning": ["More action-oriented", ...]
+  },
+  "bodyText": {
+    "issues": [
+      {
+        "original": "Original text",
+        "improved": "Better version",
+        "reason": "Why it's better"
+      }
+    ]
+  },
+  "suggestions": [
+    "Add social proof section",
+    "Include urgency in CTA",
+    ...
+  ],
+  "seoKeywords": ["keyword1", "keyword2"]
+}
+\`\`\`
+
+## Copy Principles:
+- Clear > Clever
+- Benefits > Features  
+- Active voice > Passive
+- Specific > Vague
+- Short sentences, short paragraphs
+- One idea per paragraph
+- Strong verbs, no adverbs
+
+## CTA Best Practices:
+- Start with action verb
+- Create urgency
+- Show value
+- Be specific
+- "Get Started Free" > "Submit"
+- "See Pricing" > "Learn More"
+
+## Important:
+- Focus on conversion
+- Keep brand voice
+- Be concise
+- Provide before/after examples
+- After review, hand off to final delivery`,
+
+  marketer: `You are a Digital Marketing Specialist focused on SEO and growth.
+
+## Your Input:
+You'll receive the final website after QA and copy review.
+
+## Your Goals:
 1. Optimize meta tags for search
-2. Suggest content improvements
-3. Add structured data
-4. Improve conversion elements
-5. Plan for analytics
+2. Add structured data (JSON-LD)
+3. Check Open Graph tags
+4. Suggest content improvements
+5. Plan analytics setup
+6. Recommend growth tactics
+
+## Output Format:
+\`\`\`seo_report
+{
+  "metaTags": {
+    "title": "Optimized title (50-60 chars)",
+    "description": "Meta description (150-160 chars)",
+    "keywords": ["key1", "key2"]
+  },
+  "openGraph": {
+    "title": "...",
+    "description": "...",
+    "image": "recommended image specs"
+  },
+  "structuredData": {
+    "type": "LocalBusiness/Organization/etc",
+    "schema": { ... }
+  },
+  "analytics": {
+    "recommended": ["Google Analytics 4", "Hotjar"],
+    "events": ["cta_click", "form_submit", ...]
+  },
+  "improvements": [
+    "Add blog for SEO",
+    "Create landing pages for keywords",
+    ...
+  ]
+}
+\`\`\`
 
 ## Note:
-This agent is planned for future releases. For now, basic SEO is handled by the engineer.`,
+This is the final review before deployment.`,
 };
 
 // Determine which agent should handle the current state
@@ -293,5 +475,76 @@ export const AGENT_INFO: Record<AgentRole, { name: string; emoji: string; title:
   product_manager: { name: 'Alex', emoji: '📋', title: 'Product Manager' },
   designer: { name: 'Maya', emoji: '🎨', title: 'Designer' },
   engineer: { name: 'Sam', emoji: '💻', title: 'Engineer' },
+  qa: { name: 'Riley', emoji: '🔍', title: 'QA Engineer' },
+  copywriter: { name: 'Casey', emoji: '✍️', title: 'Copywriter' },
   marketer: { name: 'Jordan', emoji: '📈', title: 'Marketer' },
 };
+
+// Parse QA report
+export function parseQAReport(content: string): QAReport | null {
+  const match = content.match(/```qa_report\n([\s\S]*?)```/);
+  if (!match) return null;
+  
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+// Parse copy review
+export function parseCopyReview(content: string): CopyReview | null {
+  const match = content.match(/```copy_review\n([\s\S]*?)```/);
+  if (!match) return null;
+  
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+export interface QAReport {
+  passed: boolean;
+  score: number;
+  issues: Array<{
+    severity: 'error' | 'warning' | 'info';
+    category: string;
+    description: string;
+    location: string;
+    fix: string;
+  }>;
+  accessibility: {
+    score: number;
+    issues: string[];
+  };
+  responsive: {
+    mobile: string;
+    tablet: string;
+    desktop: string;
+  };
+  suggestions: string[];
+}
+
+export interface CopyReview {
+  overallScore: number;
+  headlines: {
+    current: string[];
+    improved: string[];
+    scores: number[];
+  };
+  ctas: {
+    current: string[];
+    improved: string[];
+    reasoning: string[];
+  };
+  bodyText: {
+    issues: Array<{
+      original: string;
+      improved: string;
+      reason: string;
+    }>;
+  };
+  suggestions: string[];
+  seoKeywords: string[];
+}

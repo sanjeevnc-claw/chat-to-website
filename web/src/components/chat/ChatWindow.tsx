@@ -11,7 +11,9 @@ import {
   AGENT_INFO, 
   parseRequirements, 
   parseDesignSpec, 
-  parseWebsiteCode 
+  parseWebsiteCode,
+  parseQAReport,
+  parseCopyReview 
 } from '@/lib/agents';
 
 interface ChatMessage {
@@ -24,11 +26,13 @@ const INITIAL_MESSAGE: Message = {
   role: 'assistant',
   content: `👋 Hi! I'm **Alex**, your Product Manager.
 
-I'll be working with a team to build your perfect website:
+I'll be working with an expert team to build your perfect website:
 
-📋 **Alex (PM)** — I'll gather your requirements
-🎨 **Maya (Designer)** — She'll craft the visual design  
-💻 **Sam (Engineer)** — He'll build the code
+📋 **Alex (PM)** — Requirements & strategy
+🎨 **Maya (Designer)** — Visual design & UX  
+💻 **Sam (Engineer)** — Code & development
+🔍 **Riley (QA)** — Quality & visual testing
+✍️ **Casey (Copywriter)** — Marketing copy
 
 Let's start! **What kind of website do you need?**
 
@@ -47,6 +51,8 @@ export function ChatWindow() {
     requirements: null,
     designSpec: null,
     websiteCode: null,
+    qaReport: null,
+    copyReview: null,
   });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -235,6 +241,70 @@ Building now... ⚡`,
         newState = {
           ...newState,
           websiteCode,
+          currentAgent: 'qa',
+          stage: 'qa',
+        };
+        
+        // Add handoff message
+        setTimeout(() => {
+          const handoffMessage: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `🔍 **Riley here!** I'm the QA Engineer.
+
+Sam's code looks great! Let me run a thorough quality check:
+
+- Visual consistency across devices
+- Accessibility compliance (WCAG)
+- Responsive design testing
+- Code quality review
+
+Running tests now... 🧪`,
+            timestamp: new Date(),
+            agent: 'qa',
+          };
+          setMessages(prev => [...prev, handoffMessage]);
+        }, 1000);
+      }
+
+      // Check for QA report
+      const qaReport = parseQAReport(fullContent);
+      if (qaReport) {
+        newState = {
+          ...newState,
+          qaReport,
+          currentAgent: 'copywriter',
+          stage: 'copy',
+        };
+        
+        // Add handoff message
+        setTimeout(() => {
+          const handoffMessage: Message = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `✍️ **Casey here!** I'm the Copywriter.
+
+Riley's QA passed! Now let me review the copy:
+
+- Headline impact
+- CTA effectiveness  
+- Value propositions
+- Brand voice consistency
+
+Analyzing the content... 📝`,
+            timestamp: new Date(),
+            agent: 'copywriter',
+          };
+          setMessages(prev => [...prev, handoffMessage]);
+        }, 1000);
+      }
+
+      // Check for copy review
+      const copyReview = parseCopyReview(fullContent);
+      if (copyReview) {
+        newState = {
+          ...newState,
+          copyReview,
           stage: 'review',
         };
       }
@@ -281,26 +351,40 @@ Building now... ⚡`,
         </div>
 
         {/* Progress indicator */}
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-1">
           <StageIndicator 
             stage="requirements" 
             current={agentState.stage} 
             completed={!!agentState.requirements}
-            label="PM"
+            label="📋"
           />
-          <div className="w-4 h-px bg-border" />
+          <div className="w-2 h-px bg-border" />
           <StageIndicator 
             stage="design" 
             current={agentState.stage} 
             completed={!!agentState.designSpec}
-            label="Design"
+            label="🎨"
           />
-          <div className="w-4 h-px bg-border" />
+          <div className="w-2 h-px bg-border" />
           <StageIndicator 
             stage="build" 
             current={agentState.stage} 
             completed={!!agentState.websiteCode}
-            label="Build"
+            label="💻"
+          />
+          <div className="w-2 h-px bg-border" />
+          <StageIndicator 
+            stage="qa" 
+            current={agentState.stage} 
+            completed={!!agentState.qaReport}
+            label="🔍"
+          />
+          <div className="w-2 h-px bg-border" />
+          <StageIndicator 
+            stage="copy" 
+            current={agentState.stage} 
+            completed={!!agentState.copyReview}
+            label="✍️"
           />
         </div>
 
