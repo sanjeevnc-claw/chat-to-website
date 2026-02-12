@@ -5,6 +5,11 @@ const redis = Redis.fromEnv();
 const FREE_SITES = 1;
 const FREE_UPDATES = 20;
 
+// Whitelisted chat IDs (unlimited usage)
+const ADMIN_CHAT_IDS = new Set([
+  8220228754, // Sanjeev
+]);
+
 export interface ProjectState {
   repoName: string | null;
   currentHtml: string | null;
@@ -45,12 +50,16 @@ export async function incrementSitesCreated(chatId: number): Promise<void> {
   await redis.set(`${USAGE_PREFIX}${chatId}`, usage);
 }
 
-export function canCreateSite(usage: UserUsage): boolean {
-  return usage.sitesCreated < FREE_SITES;
+export function isAdmin(chatId: number): boolean {
+  return ADMIN_CHAT_IDS.has(chatId);
 }
 
-export function canUpdate(state: ProjectState): boolean {
-  return state.deployCount < FREE_UPDATES;
+export function canCreateSite(chatId: number, usage: UserUsage): boolean {
+  return isAdmin(chatId) || usage.sitesCreated < FREE_SITES;
+}
+
+export function canUpdate(chatId: number, state: ProjectState): boolean {
+  return isAdmin(chatId) || state.deployCount < FREE_UPDATES;
 }
 
 export { FREE_SITES, FREE_UPDATES };

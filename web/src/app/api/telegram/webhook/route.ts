@@ -193,7 +193,7 @@ async function handleMessage(chatId: number, text: string) {
       const usage = await getUserUsage(chatId);
       const isNewSite = !state.repoName;
 
-      if (isNewSite && !canCreateSite(usage)) {
+      if (isNewSite && !canCreateSite(chatId, usage)) {
         await sendMessage(
           chatId,
           `🚫 You've used your free site (${FREE_SITES} site included).\n\nPaid plans coming soon! Stay tuned.`
@@ -201,7 +201,7 @@ async function handleMessage(chatId: number, text: string) {
         return;
       }
 
-      if (!isNewSite && !canUpdate(state)) {
+      if (!isNewSite && !canUpdate(chatId, state)) {
         await sendMessage(
           chatId,
           `🚫 You've hit the update limit (${FREE_UPDATES} updates per site).\n\nPaid plans coming soon! Stay tuned.`
