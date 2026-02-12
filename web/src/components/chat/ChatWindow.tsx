@@ -122,7 +122,6 @@ export default function ChatWindow() {
       if (data.repoName) {
         setCurrentRepoName(data.repoName);
       }
-      setCurrentHtml(html);
 
       setMessages(prev => {
         const updated = [...prev];
@@ -170,44 +169,58 @@ export default function ChatWindow() {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let rawContent = '';
+      let sseBuffer = '';
 
       setMessages(prev => [...prev, { role: 'assistant', content: '🔨 Building your website...' }]);
+
+      const processDataLine = (data: string) => {
+        if (data === '[DONE]') return;
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.content) {
+            rawContent += parsed.content;
+            const display = getDisplayText(rawContent);
+            setMessages(prev => {
+              const newMessages = [...prev];
+              newMessages[newMessages.length - 1] = {
+                role: 'assistant',
+                content: display,
+              };
+              return newMessages;
+            });
+          }
+        } catch {
+          // Skip invalid JSON
+        }
+      };
 
       while (reader) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        const chunk = decoder.decode(value, { stream: true });
+        sseBuffer += chunk;
+        const lines = sseBuffer.split('\n');
+        sseBuffer = lines.pop() ?? '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.content) {
-                rawContent += parsed.content;
-                const display = getDisplayText(rawContent);
-                setMessages(prev => {
-                  const newMessages = [...prev];
-                  newMessages[newMessages.length - 1] = {
-                    role: 'assistant',
-                    content: display,
-                  };
-                  return newMessages;
-                });
-              }
-            } catch {
-              // Skip invalid JSON
-            }
+          const trimmed = line.trimEnd();
+          if (trimmed.startsWith('data: ')) {
+            processDataLine(trimmed.slice(6));
           }
         }
+      }
+
+      sseBuffer += decoder.decode();
+      const leftover = sseBuffer.trimEnd();
+      if (leftover.startsWith('data: ')) {
+        processDataLine(leftover.slice(6));
       }
 
       // Streaming done — check for HTML and auto-deploy
       const html = extractHtml(rawContent);
       const finalDisplay = getDisplayText(rawContent);
+      if (html) setCurrentHtml(html);
 
       setMessages(prev => {
         const updated = [...prev];
