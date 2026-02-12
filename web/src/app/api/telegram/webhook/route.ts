@@ -10,6 +10,7 @@ import {
   createGitHubRepo,
   scaffoldAndPush,
   createVercelProject,
+  getPublicVercelUrl,
   triggerVercelDeployment,
   waitForDeployment,
   updateProjectHtml,
@@ -106,7 +107,8 @@ async function deployHtml(
   if (existingRepo) {
     await updateProjectHtml(existingRepo, html);
     const deploymentId = await triggerVercelDeployment(existingRepo);
-    const deployUrl = await waitForDeployment(deploymentId);
+    await waitForDeployment(deploymentId);
+    const deployUrl = getPublicVercelUrl(existingRepo);
     return { repoName: existingRepo, deployUrl };
   }
 
@@ -115,7 +117,8 @@ async function deployHtml(
   await scaffoldAndPush(repoName, html);
   await createVercelProject(repoName);
   const deploymentId = await triggerVercelDeployment(repoName);
-  const deployUrl = await waitForDeployment(deploymentId);
+  await waitForDeployment(deploymentId);
+  const deployUrl = getPublicVercelUrl(repoName);
   return { repoName, deployUrl };
 }
 

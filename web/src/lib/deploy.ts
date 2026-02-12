@@ -18,6 +18,10 @@ function vercelHeaders() {
   };
 }
 
+export function getPublicVercelUrl(repoName: string): string {
+  return `https://${repoName}.vercel.app`;
+}
+
 async function getOwner(): Promise<string> {
   if (_cachedOwner) return _cachedOwner;
   const res = await fetch(`${GITHUB_API}/user`, { headers: githubHeaders() });
@@ -173,12 +177,12 @@ export async function createVercelProject(repoName: string): Promise<string> {
   if (!res.ok) {
     const err = await res.json();
     if (JSON.stringify(err).includes('already exist')) {
-      return `https://${repoName}.vercel.app`;
+      return getPublicVercelUrl(repoName);
     }
     throw new Error(`Vercel create project failed: ${JSON.stringify(err)}`);
   }
 
-  return `https://${repoName}.vercel.app`;
+  return getPublicVercelUrl(repoName);
 }
 
 export async function updateProjectHtml(repoName: string, html: string) {
@@ -222,7 +226,7 @@ export async function triggerVercelDeployment(repoName: string): Promise<string>
   return data.id as string;
 }
 
-export async function waitForDeployment(deploymentId: string, timeoutMs = 120000): Promise<string> {
+export async function waitForDeployment(deploymentId: string, timeoutMs = 120000): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const res = await fetch(`${VERCEL_API}/v13/deployments/${deploymentId}`, {
@@ -231,7 +235,7 @@ export async function waitForDeployment(deploymentId: string, timeoutMs = 120000
     if (res.ok) {
       const data = await res.json();
       if (data.readyState === 'READY') {
-        return `https://${data.url}`;
+        return;
       }
       if (data.readyState === 'ERROR' || data.readyState === 'CANCELED') {
         throw new Error(`Deployment ${data.readyState}: ${data.errorMessage || 'unknown error'}`);
