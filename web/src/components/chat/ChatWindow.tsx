@@ -7,11 +7,7 @@ interface Message {
   content: string;
 }
 
-interface ChatWindowProps {
-  onCodeGenerated?: (code: string) => void;
-}
-
-export default function ChatWindow({ onCodeGenerated }: ChatWindowProps) {
+export default function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -25,17 +21,6 @@ export default function ChatWindow({ onCodeGenerated }: ChatWindowProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Extract code from assistant messages
-  useEffect(() => {
-    const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
-    if (lastAssistantMessage) {
-      const codeMatch = lastAssistantMessage.content.match(/```(?:html|website)?\n([\s\S]*?)```/);
-      if (codeMatch && onCodeGenerated) {
-        onCodeGenerated(codeMatch[1]);
-      }
-    }
-  }, [messages, onCodeGenerated]);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
