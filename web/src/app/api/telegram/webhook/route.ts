@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { TelegramUpdate, sendMessage, sendChatAction } from '@/lib/telegram';
-import { getProjectState, setProjectState, resetProjectState, ProjectState } from '@/lib/store';
+import {
+  getProjectState, setProjectState, resetProjectState,
+  getUserUsage, incrementSitesCreated, canCreateSite, canUpdate,
+  FREE_SITES, FREE_UPDATES,
+  ProjectState,
+} from '@/lib/store';
 import {
   createGitHubRepo,
   scaffoldAndPush,
@@ -141,13 +146,15 @@ async function handleMessage(chatId: number, text: string) {
 
     if (text === '/status') {
       const state = await getProjectState(chatId);
+      const usage = await getUserUsage(chatId);
       if (state?.deployUrl) {
+        const remaining = FREE_UPDATES - (state.deployCount || 0);
         await sendMessage(
           chatId,
-          `📊 <b>Your current project:</b>\n\n🌐 ${state.deployUrl}\n\nSend a message to make changes, or /new to start fresh.`
+          `📊 <b>Your current project:</b>\n\n🌐 ${state.deployUrl}\n📝 Updates used: ${state.deployCount || 0}/${FREE_UPDATES}\n🏗️ Sites created: ${usage.sitesCreated}/${FREE_SITES}\n\nSend a message to make changes, or /new to start fresh.`
         );
       } else {
-        await sendMessage(chatId, 'No active project. Describe a website to get started!');
+        await sendMessage(chatId, `No active project. Describe a website to get started!\n\n🏗️ Free sites remaining: ${FREE_SITES - usage.sitesCreated}`);
       }
       return;
     }
@@ -155,8 +162,10 @@ async function handleMessage(chatId: number, text: string) {
     // Load state
     let state = await getProjectState(chatId);
     if (!state) {
-      state = { repoName: null, currentHtml: null, deployUrl: null, messages: [] };
+      state = { repoName: null, currentHtml: null, deployUrl: null, messages: [], deployCount: 0 };
     }
+    // Backfill deployCount for old states
+    if (state.deployCount === undefined) state.deployCount = 0;
 
     // Add user message to history
     state.messages.push({ role: 'user', content: text });
@@ -177,17 +186,39 @@ async function handleMessage(chatId: number, text: string) {
     const displayText = getDisplayText(response);
 
     if (html) {
+      // Check limits
+      const usage = await getUserUsage(chatId);
+      const isNewSite = !state.repoName;
+
+      if (isNewSite && !canCreateSite(usage)) {
+        await sendMessage(
+          chatId,
+          `🚫 You've used your free site (${FREE_SITES} site included).\n\nPaid plans coming soon! Stay tuned.`
+        );
+        return;
+      }
+
+      if (!isNewSite && !canUpdate(state)) {
+        await sendMessage(
+          chatId,
+          `🚫 You've hit the update limit (${FREE_UPDATES} updates per site).\n\nPaid plans coming soon! Stay tuned.`
+        );
+        return;
+      }
+
       // Send "building" message
       await sendMessage(chatId, '🔨 Building your website...');
       await sendChatAction(chatId, 'typing');
 
       // Deploy
       const { repoName, deployUrl } = await deployHtml(html, state.repoName);
+      if (isNewSite) await incrementSitesCreated(chatId);
 
       // Update state
       state.repoName = repoName;
       state.currentHtml = html;
       state.deployUrl = deployUrl;
+      state.deployCount += 1;
       await setProjectState(chatId, state);
 
       // Send the live URL
