@@ -241,7 +241,6 @@ async function handleMessage(chatId: number, text: string) {
   }
 }
 
-// Return 200 immediately, process async
 export async function POST(req: NextRequest) {
   try {
     const update: TelegramUpdate = await req.json();
@@ -250,10 +249,8 @@ export async function POST(req: NextRequest) {
       const chatId = update.message.chat.id;
       const text = update.message.text.trim();
 
-      // Fire and forget — don't await
-      handleMessage(chatId, text).catch((err) =>
-        console.error('Background handleMessage failed:', err)
-      );
+      // Must await — Vercel kills the function after response is sent
+      await handleMessage(chatId, text);
     }
 
     return NextResponse.json({ ok: true });
