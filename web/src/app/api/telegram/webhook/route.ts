@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TelegramUpdate, sendMessage, sendChatAction } from '@/lib/telegram';
+import { TelegramUpdate, sendMessage, sendChatAction, sendInvoice, answerPreCheckoutQuery } from '@/lib/telegram';
 import {
   getProjectState, setProjectState, resetProjectState,
   getUserUsage, incrementSitesCreated, canCreateSite, canUpdate,
-  FREE_SITES, FREE_UPDATES,
+  addExtraSite, addExtraUpdates,
+  FREE_SITES, FREE_UPDATES, PRICES,
   ProjectState,
 } from '@/lib/store';
 import {
@@ -176,17 +177,25 @@ async function handleMessage(chatId: number, text: string) {
       const isNewSite = !state.repoName;
 
       if (isNewSite && !canCreateSite(chatId, usage)) {
-        await sendMessage(
+        await sendMessage(chatId, `🚫 You've used your free site. Unlock another one for ⭐${PRICES.EXTRA_SITE}:`);
+        await sendInvoice(
           chatId,
-          `🚫 You've used your free site (${FREE_SITES} site included).\n\nPaid plans coming soon! Stay tuned.`
+          'Extra Website',
+          'Create one more website with 20 updates included.',
+          'extra_site',
+          [{ label: '1 Extra Website', amount: PRICES.EXTRA_SITE }]
         );
         return;
       }
 
-      if (!isNewSite && !canUpdate(chatId, state)) {
-        await sendMessage(
+      if (!isNewSite && !canUpdate(chatId, state, usage)) {
+        await sendMessage(chatId, `🚫 You've hit the update limit. Get 20 more updates for ⭐${PRICES.EXTRA_UPDATES}:`);
+        await sendInvoice(
           chatId,
-          `🚫 You've hit the update limit (${FREE_UPDATES} updates per site).\n\nPaid plans coming soon! Stay tuned.`
+          'Extra Updates',
+          '20 more updates for your current website.',
+          'extra_updates',
+          [{ label: '20 Extra Updates', amount: PRICES.EXTRA_UPDATES }]
         );
         return;
       }
@@ -229,6 +238,31 @@ async function handleMessage(chatId: number, text: string) {
 export async function POST(req: NextRequest) {
   try {
     const update: TelegramUpdate = await req.json();
+
+    // Handle pre-checkout queries (must respond within 10 seconds)
+    if (update.pre_checkout_query) {
+      const query = update.pre_checkout_query;
+      // Auto-approve all payments
+      await answerPreCheckoutQuery(query.id, true);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle successful payments
+    if (update.message?.successful_payment) {
+      const chatId = update.message.chat.id;
+      const payment = update.message.successful_payment;
+      const paymentId = payment.telegram_payment_charge_id;
+
+      if (payment.invoice_payload === 'extra_site') {
+        await addExtraSite(chatId, paymentId);
+        await sendMessage(chatId, '✅ Extra website unlocked! Describe what you want to build.');
+      } else if (payment.invoice_payload === 'extra_updates') {
+        await addExtraUpdates(chatId, paymentId);
+        await sendMessage(chatId, '✅ 20 extra updates added! Send your changes.');
+      }
+
+      return NextResponse.json({ ok: true });
+    }
 
     if (update.message?.text) {
       const chatId = update.message.chat.id;
