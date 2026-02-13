@@ -59,9 +59,28 @@ async function callClaude(
   return data.content?.[0]?.text || '';
 }
 
+function generateRepoName(message: string): string {
+  // Extract key words, create a slug
+  const stopWords = new Set(['a', 'an', 'the', 'for', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'of', 'is', 'it', 'my', 'me', 'i', 'we', 'our',
+    'want', 'need', 'make', 'build', 'create', 'website', 'site', 'page', 'please', 'can', 'you', 'with', 'that', 'this', 'like', 'would', 'should']);
+  
+  const words = message
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 1 && !stopWords.has(w))
+    .slice(0, 3);
+  
+  const slug = words.length > 0 ? words.join('-') : 'my-site';
+  // Add short suffix for uniqueness
+  const suffix = Date.now().toString(36).slice(-4);
+  return `${slug}-${suffix}`;
+}
+
 async function deployHtml(
   html: string,
-  existingRepo: string | null
+  existingRepo: string | null,
+  userMessage: string
 ): Promise<{ repoName: string; deployUrl: string }> {
   if (existingRepo) {
     await updateProjectHtml(existingRepo, html);
@@ -71,7 +90,7 @@ async function deployHtml(
     return { repoName: existingRepo, deployUrl };
   }
 
-  const repoName = `site-${Date.now().toString(36)}`;
+  const repoName = generateRepoName(userMessage);
   await createGitHubRepo(repoName);
   await scaffoldAndPush(repoName, html);
   await createVercelProject(repoName);
@@ -177,7 +196,7 @@ async function handleMessage(chatId: number, text: string) {
       await sendChatAction(chatId, 'typing');
 
       // Deploy
-      const { repoName, deployUrl } = await deployHtml(html, state.repoName);
+      const { repoName, deployUrl } = await deployHtml(html, state.repoName, text);
       if (isNewSite) await incrementSitesCreated(chatId);
 
       // Update state
