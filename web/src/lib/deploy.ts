@@ -196,6 +196,41 @@ export async function updateProjectHtml(repoName: string, html: string) {
   await pushFile(owner, repoName, 'src/app/page.tsx', pageTsx, 'Update website');
 }
 
+export async function pushImageToRepo(
+  repoName: string,
+  filename: string,
+  imageBuffer: Buffer
+): Promise<string> {
+  const owner = await getOwner();
+  const path = `public/${filename}`;
+  const content = imageBuffer.toString('base64');
+
+  // Use the GitHub Contents API to push binary file
+  const existingRes = await fetch(`${GITHUB_API}/repos/${owner}/${repoName}/contents/${path}`, {
+    headers: githubHeaders(),
+  });
+  const body: Record<string, string> = {
+    message: `Add image ${filename}`,
+    content,
+  };
+  if (existingRes.ok) {
+    const existing = await existingRes.json();
+    body.sha = existing.sha;
+  }
+
+  const res = await fetch(`${GITHUB_API}/repos/${owner}/${repoName}/contents/${path}`, {
+    method: 'PUT',
+    headers: githubHeaders(),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(`GitHub push image failed: ${JSON.stringify(err)}`);
+  }
+  // Return the path that the HTML should reference
+  return `/${filename}`;
+}
+
 export async function getRepoUrl(repoName: string): Promise<string> {
   const owner = await getOwner();
   return `https://github.com/${owner}/${repoName}`;

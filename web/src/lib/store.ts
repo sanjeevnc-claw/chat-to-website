@@ -15,7 +15,8 @@ export interface ProjectState {
   currentHtml: string | null;
   deployUrl: string | null;
   messages: { role: string; content: string }[];
-  deployCount: number; // number of deploys for this project
+  deployCount: number;
+  images: string[]; // paths of uploaded images (e.g., ["/logo.jpg", "/hero.jpg"])
 }
 
 export interface UserUsage {

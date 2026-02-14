@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TelegramUpdate, sendMessage, sendChatAction, sendInvoice, answerPreCheckoutQuery } from '@/lib/telegram';
+import { TelegramUpdate, sendMessage, sendChatAction, sendInvoice, answerPreCheckoutQuery, downloadFile } from '@/lib/telegram';
 import {
   getProjectState, setProjectState, resetProjectState,
   getUserUsage, incrementSitesCreated, canCreateSite, canUpdate,
@@ -15,6 +15,7 @@ import {
   triggerVercelDeployment,
   waitForDeployment,
   updateProjectHtml,
+  pushImageToRepo,
 } from '@/lib/deploy';
 import { detectFlowState, buildSystemPrompt } from '@/lib/prompts';
 
@@ -31,9 +32,10 @@ function getDisplayText(content: string): string {
 async function callClaude(
   messages: { role: string; content: string }[],
   currentHtml: string | null,
-  flowState: ReturnType<typeof detectFlowState>
+  flowState: ReturnType<typeof detectFlowState>,
+  images: string[] = []
 ): Promise<string> {
-  const systemPrompt = buildSystemPrompt(flowState, currentHtml);
+  const systemPrompt = buildSystemPrompt(flowState, currentHtml, images);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -144,8 +146,9 @@ async function handleMessage(chatId: number, text: string) {
     // Load state
     let state = await getProjectState(chatId);
     if (!state) {
-      state = { repoName: null, currentHtml: null, deployUrl: null, messages: [], deployCount: 0 };
+      state = { repoName: null, currentHtml: null, deployUrl: null, messages: [], deployCount: 0, images: [] };
     }
+    if (!state.images) state.images = []; // backfill old states
     // Backfill deployCount for old states
     if (state.deployCount === undefined) state.deployCount = 0;
 
@@ -162,7 +165,7 @@ async function handleMessage(chatId: number, text: string) {
     const lastAssistantAskedQuestion = lastMsg?.role === 'assistant' && (lastMsg.content.includes('?'));
     const userMessageCount = state.messages.filter(m => m.role === 'user').length;
     const flowState = detectFlowState(!!state.repoName, userMessageCount, lastAssistantAskedQuestion);
-    const response = await callClaude(state.messages, state.currentHtml, flowState);
+    const response = await callClaude(state.messages, state.currentHtml, flowState, state.images);
 
     // Add assistant response to history
     state.messages.push({ role: 'assistant', content: response });
@@ -259,6 +262,49 @@ export async function POST(req: NextRequest) {
       } else if (payment.invoice_payload === 'extra_updates') {
         await addExtraUpdates(chatId, paymentId);
         await sendMessage(chatId, '✅ 20 extra updates added! Send your changes.');
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle photo messages
+    if (update.message?.photo) {
+      const chatId = update.message.chat.id;
+      const caption = update.message.caption?.trim() || '';
+      const photo = update.message.photo;
+      // Grab the largest size (last in array)
+      const largestPhoto = photo[photo.length - 1];
+
+      await sendChatAction(chatId, 'typing');
+
+      // Load state
+      let state = await getProjectState(chatId);
+      if (!state) {
+        state = { repoName: null, currentHtml: null, deployUrl: null, messages: [], deployCount: 0, images: [] };
+      }
+      if (!state.images) state.images = [];
+
+      // Need a repo to push images to
+      if (!state.repoName) {
+        // Create repo early so we can store the image
+        const repoName = generateRepoName(caption || 'my-site');
+        await createGitHubRepo(repoName);
+        state.repoName = repoName;
+      }
+
+      // Download and push image
+      const { buffer, extension } = await downloadFile(largestPhoto.file_id);
+      const filename = `image-${Date.now().toString(36)}.${extension}`;
+      const imagePath = await pushImageToRepo(state.repoName, filename, buffer);
+      state.images.push(imagePath);
+      await setProjectState(chatId, state);
+
+      const imageCount = state.images.length;
+      await sendMessage(chatId, `📸 Image uploaded! (${imageCount} image${imageCount > 1 ? 's' : ''} saved)\n\n${caption ? `I'll use this when building your site.` : `Send more images or describe your website to start building.`}`);
+
+      // If there's a caption, treat it as a message too
+      if (caption) {
+        await handleMessage(chatId, caption);
       }
 
       return NextResponse.json({ ok: true });

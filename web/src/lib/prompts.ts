@@ -32,7 +32,8 @@ export function detectFlowState(
 
 export function buildSystemPrompt(
   flowState: FlowState,
-  currentHtml: string | null
+  currentHtml: string | null,
+  images: string[] = []
 ): string {
   // Always load base
   let prompt = get('base');
@@ -62,6 +63,11 @@ export function buildSystemPrompt(
   // Add current HTML context for iteration
   if (currentHtml && flowState === 'iteration') {
     prompt += `\n\nCURRENT WEBSITE HTML:\n\`\`\`html\n${currentHtml}\n\`\`\``;
+  }
+
+  // Add available images
+  if (images.length > 0) {
+    prompt += `\n\nAVAILABLE IMAGES:\nThe user has uploaded the following images. Use them in the website with <img> tags. The paths are relative to the site root.\n${images.map(img => `- ${img}`).join('\n')}\n\nUse these images where they make sense (hero sections, galleries, about sections, etc). Use descriptive alt text based on context.`;
   }
 
   return prompt;
