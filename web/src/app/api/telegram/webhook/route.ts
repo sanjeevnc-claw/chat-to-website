@@ -5,37 +5,35 @@ import {
   getUserUsage, incrementSitesCreated, canCreateSite, canUpdate,
   addExtraSite, addExtraUpdates,
   FREE_SITES, FREE_UPDATES, PRICES,
-  ProjectState,
+  ProjectState, createInitialState,
+  upsertPage, removePage, upsertBlogPost, removeBlogPost,
+  PageContent,
 } from '@/lib/store';
 import {
   createGitHubRepo,
   scaffoldAndPush,
+  scaffoldMultiPageSite,
   createVercelProject,
   getPublicVercelUrl,
   triggerVercelDeployment,
   waitForDeployment,
   updateProjectHtml,
   pushImageToRepo,
+  updatePage,
+  deletePage,
+  updateBlogPost,
+  deleteBlogPost,
+  updateLayout,
 } from '@/lib/deploy';
-import { detectFlowState, buildSystemPrompt } from '@/lib/prompts';
-
-function extractHtml(content: string): string | null {
-  const match = content.match(/```html\n([\s\S]*?)```/);
-  return match ? match[1].trim() : null;
-}
-
-function getDisplayText(content: string): string {
-  // Strip the HTML code block from the response for the user-facing message
-  return content.replace(/```html\n[\s\S]*?```/g, '').trim();
-}
+import { detectFlowState, buildSystemPrompt, parseAIResponse, hasStructuredContent, ParsedResponse } from '@/lib/prompts';
 
 async function callClaude(
   messages: { role: string; content: string }[],
-  currentHtml: string | null,
+  state: ProjectState | null,
   flowState: ReturnType<typeof detectFlowState>,
   images: string[] = []
 ): Promise<string> {
-  const systemPrompt = buildSystemPrompt(flowState, currentHtml, images);
+  const systemPrompt = buildSystemPrompt(flowState, state, images);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -63,7 +61,6 @@ async function callClaude(
 }
 
 function generateRepoName(message: string): string {
-  // Extract key words, create a slug
   const stopWords = new Set(['a', 'an', 'the', 'for', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'of', 'is', 'it', 'my', 'me', 'i', 'we', 'our',
     'want', 'need', 'make', 'build', 'create', 'website', 'site', 'page', 'please', 'can', 'you', 'with', 'that', 'this', 'like', 'would', 'should']);
   
@@ -75,37 +72,141 @@ function generateRepoName(message: string): string {
     .slice(0, 3);
   
   const slug = words.length > 0 ? words.join('-') : 'my-site';
-  // Add short suffix for uniqueness
   const suffix = Date.now().toString(36).slice(-4);
-  return `${slug}-${suffix}`;
+  return `site-${slug}-${suffix}`;
 }
 
-async function deployHtml(
-  html: string,
-  existingRepo: string | null,
+// Apply parsed response to state and deploy
+async function applyChanges(
+  chatId: number,
+  state: ProjectState,
+  parsed: ParsedResponse,
   userMessage: string
-): Promise<{ repoName: string; deployUrl: string }> {
-  if (existingRepo) {
-    await updateProjectHtml(existingRepo, html);
-    const deploymentId = await triggerVercelDeployment(existingRepo);
-    await waitForDeployment(deploymentId);
-    const deployUrl = getPublicVercelUrl(existingRepo);
-    return { repoName: existingRepo, deployUrl };
+): Promise<{ repoName: string; deployUrl: string; isNewSite: boolean }> {
+  const isNewSite = !state.repoName;
+  
+  // Create repo if needed
+  if (!state.repoName) {
+    const siteName = parsed.siteConfig?.siteName || 'My Website';
+    state.repoName = generateRepoName(siteName);
+    await createGitHubRepo(state.repoName);
   }
-
-  const repoName = generateRepoName(userMessage);
-  await createGitHubRepo(repoName);
-  await scaffoldAndPush(repoName, html);
-  await createVercelProject(repoName);
-  const deploymentId = await triggerVercelDeployment(repoName);
+  
+  // Apply site config changes
+  if (parsed.siteConfig) {
+    state.siteConfig = {
+      siteName: parsed.siteConfig.siteName || state.siteConfig?.siteName || 'My Website',
+      description: parsed.siteConfig.description || state.siteConfig?.description || '',
+      primaryColor: parsed.siteConfig.primaryColor || state.siteConfig?.primaryColor || '#2563eb',
+      fontFamily: parsed.siteConfig.fontFamily || state.siteConfig?.fontFamily || 'system-ui',
+      navStyle: parsed.siteConfig.navStyle || state.siteConfig?.navStyle || 'horizontal',
+    };
+  }
+  
+  // Ensure site config exists
+  if (!state.siteConfig) {
+    state.siteConfig = {
+      siteName: 'My Website',
+      description: '',
+      primaryColor: '#2563eb',
+      fontFamily: 'system-ui',
+      navStyle: 'horizontal',
+    };
+  }
+  
+  // Apply page changes
+  for (const page of parsed.pages) {
+    upsertPage(state, page);
+  }
+  
+  // Apply page deletions
+  for (const slug of parsed.deletedPages) {
+    removePage(state, slug);
+    if (!isNewSite) {
+      await deletePage(state.repoName!, slug);
+    }
+  }
+  
+  // Apply blog post changes
+  for (const post of parsed.blogPosts) {
+    upsertBlogPost(state, post);
+  }
+  
+  // Apply blog post deletions
+  for (const slug of parsed.deletedBlogPosts) {
+    removeBlogPost(state, slug);
+    if (!isNewSite) {
+      await deleteBlogPost(state.repoName!, slug, state.blogPosts);
+    }
+  }
+  
+  // Handle legacy HTML (convert to home page)
+  if (parsed.legacyHtml && state.pages.length === 0) {
+    const homePage: PageContent = {
+      slug: 'home',
+      title: 'Home',
+      isHome: true,
+      order: 0,
+      content: parsed.legacyHtml,
+    };
+    upsertPage(state, homePage);
+    state.currentHtml = parsed.legacyHtml; // Keep for backward compat
+  }
+  
+  // Deploy
+  if (isNewSite || state.pages.length === 0) {
+    // For truly new sites or legacy sites with no pages
+    if (state.pages.length > 0) {
+      // New multi-page site
+      await scaffoldMultiPageSite(
+        state.repoName!,
+        state.siteConfig.siteName,
+        state.pages,
+        state.blogPosts,
+        { primaryColor: state.siteConfig.primaryColor, fontFamily: state.siteConfig.fontFamily }
+      );
+    } else if (parsed.legacyHtml) {
+      // Legacy single-page site
+      await scaffoldAndPush(state.repoName!, parsed.legacyHtml);
+    }
+    await createVercelProject(state.repoName!);
+  } else {
+    // Update existing site
+    // Update pages
+    for (const page of parsed.pages) {
+      await updatePage(state.repoName!, page);
+    }
+    
+    // Update blog posts
+    for (const post of parsed.blogPosts) {
+      await updateBlogPost(state.repoName!, post, state.blogPosts);
+    }
+    
+    // Update layout if config changed
+    if (parsed.siteConfig || parsed.pages.length > 0 || parsed.deletedPages.length > 0) {
+      await updateLayout(
+        state.repoName!,
+        state.siteConfig.siteName,
+        state.pages,
+        state.hasBlog || state.blogPosts.length > 0,
+        { primaryColor: state.siteConfig.primaryColor, fontFamily: state.siteConfig.fontFamily }
+      );
+    }
+  }
+  
+  // Trigger deployment
+  const deploymentId = await triggerVercelDeployment(state.repoName!);
   await waitForDeployment(deploymentId);
-  const deployUrl = getPublicVercelUrl(repoName);
-  return { repoName, deployUrl };
+  
+  const deployUrl = getPublicVercelUrl(state.repoName!);
+  state.deployUrl = deployUrl;
+  state.deployCount += 1;
+  
+  return { repoName: state.repoName!, deployUrl, isNewSite };
 }
 
 async function handleMessage(chatId: number, text: string) {
   try {
-    // Show typing indicator
     await sendChatAction(chatId, 'typing');
 
     // Handle commands
@@ -114,10 +215,17 @@ async function handleMessage(chatId: number, text: string) {
         chatId,
         '👋 <b>Welcome to Chat to Website!</b>\n\n' +
           'Tell me what website you want and I\'ll build and deploy it for you.\n\n' +
-          'Just describe it — e.g. "A portfolio site for a photographer with a dark theme"\n\n' +
+          '<b>What I can do:</b>\n' +
+          '📄 Build multi-page websites\n' +
+          '✍️ Create and manage blog posts\n' +
+          '🎨 Customize colors, fonts, and layout\n' +
+          '📱 Mobile-responsive design\n\n' +
+          'Just describe it — e.g. "A portfolio site for a photographer with a dark theme and a blog"\n\n' +
           'Commands:\n' +
-          '/new — Start a new website (fresh project)\n' +
-          '/status — Check your current project'
+          '/new — Start a new website\n' +
+          '/pages — List current pages\n' +
+          '/blog — List blog posts\n' +
+          '/status — Check your project status'
       );
       return;
     }
@@ -133,9 +241,17 @@ async function handleMessage(chatId: number, text: string) {
       const usage = await getUserUsage(chatId);
       if (state?.deployUrl) {
         const remaining = FREE_UPDATES - (state.deployCount || 0);
+        const pageCount = state.pages?.length || 0;
+        const blogCount = state.blogPosts?.length || 0;
         await sendMessage(
           chatId,
-          `📊 <b>Your current project:</b>\n\n🌐 ${state.deployUrl}\n📝 Updates used: ${state.deployCount || 0}/${FREE_UPDATES}\n🏗️ Sites created: ${usage.sitesCreated}/${FREE_SITES}\n\nSend a message to make changes, or /new to start fresh.`
+          `📊 <b>Your current project:</b>\n\n` +
+          `🌐 ${state.deployUrl}\n` +
+          `📄 Pages: ${pageCount}\n` +
+          `✍️ Blog posts: ${blogCount}\n` +
+          `📝 Updates used: ${state.deployCount || 0}/${FREE_UPDATES}\n` +
+          `🏗️ Sites created: ${usage.sitesCreated}/${FREE_SITES}\n\n` +
+          `Send a message to make changes, or /new to start fresh.`
         );
       } else {
         await sendMessage(chatId, `No active project. Describe a website to get started!\n\n🏗️ Free sites remaining: ${FREE_SITES - usage.sitesCreated}`);
@@ -143,19 +259,50 @@ async function handleMessage(chatId: number, text: string) {
       return;
     }
 
+    if (text === '/pages') {
+      const state = await getProjectState(chatId);
+      if (state?.pages && state.pages.length > 0) {
+        const pageList = state.pages
+          .sort((a, b) => a.order - b.order)
+          .map(p => `• ${p.title} (/${p.slug})${p.isHome ? ' — Homepage' : ''}`)
+          .join('\n');
+        await sendMessage(chatId, `📄 <b>Your pages:</b>\n\n${pageList}\n\nSay "add a [page name] page" to create more, or "edit [page name]" to modify.`);
+      } else {
+        await sendMessage(chatId, 'No pages yet. Start by describing your website!');
+      }
+      return;
+    }
+
+    if (text === '/blog') {
+      const state = await getProjectState(chatId);
+      if (state?.blogPosts && state.blogPosts.length > 0) {
+        const postList = state.blogPosts
+          .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+          .map(p => `• ${p.title}\n  /blog/${p.slug}`)
+          .join('\n\n');
+        await sendMessage(chatId, `✍️ <b>Your blog posts:</b>\n\n${postList}\n\nSay "write a blog post about X" to create more.`);
+      } else {
+        await sendMessage(chatId, 'No blog posts yet. Say "create a blog post about [topic]" to start your blog!');
+      }
+      return;
+    }
+
     // Load state
     let state = await getProjectState(chatId);
     if (!state) {
-      state = { repoName: null, currentHtml: null, deployUrl: null, messages: [], deployCount: 0, images: [] };
+      state = createInitialState();
     }
-    if (!state.images) state.images = []; // backfill old states
-    // Backfill deployCount for old states
+    // Backfill for old states
+    if (!state.images) state.images = [];
+    if (!state.pages) state.pages = [];
+    if (!state.blogPosts) state.blogPosts = [];
     if (state.deployCount === undefined) state.deployCount = 0;
+    if (state.hasBlog === undefined) state.hasBlog = false;
 
     // Add user message to history
     state.messages.push({ role: 'user', content: text });
 
-    // Keep only last 20 messages to avoid token limits
+    // Keep only last 20 messages
     if (state.messages.length > 20) {
       state.messages = state.messages.slice(-20);
     }
@@ -164,17 +311,18 @@ async function handleMessage(chatId: number, text: string) {
     const lastMsg = state.messages.length >= 2 ? state.messages[state.messages.length - 2] : null;
     const lastAssistantAskedQuestion = lastMsg?.role === 'assistant' && (lastMsg.content.includes('?'));
     const userMessageCount = state.messages.filter(m => m.role === 'user').length;
-    const flowState = detectFlowState(!!state.repoName, userMessageCount, lastAssistantAskedQuestion);
-    const response = await callClaude(state.messages, state.currentHtml, flowState, state.images);
+    const hasProject = !!(state.repoName || state.pages.length > 0);
+    const flowState = detectFlowState(hasProject, userMessageCount, lastAssistantAskedQuestion);
+    
+    const response = await callClaude(state.messages, state, flowState, state.images);
 
     // Add assistant response to history
     state.messages.push({ role: 'assistant', content: response });
 
-    // Check for HTML
-    const html = extractHtml(response);
-    const displayText = getDisplayText(response);
+    // Parse the response
+    const parsed = parseAIResponse(response);
 
-    if (html) {
+    if (hasStructuredContent(parsed)) {
       // Check limits
       const usage = await getUserUsage(chatId);
       const isNewSite = !state.repoName;
@@ -203,31 +351,48 @@ async function handleMessage(chatId: number, text: string) {
         return;
       }
 
-      // Send "building" message
-      await sendMessage(chatId, '🔨 Building your website...');
+      // Build status message
+      let statusMsg = '🔨 Building';
+      if (parsed.pages.length > 0) {
+        statusMsg += ` ${parsed.pages.length} page${parsed.pages.length > 1 ? 's' : ''}`;
+      }
+      if (parsed.blogPosts.length > 0) {
+        statusMsg += parsed.pages.length > 0 ? ' and ' : ' ';
+        statusMsg += `${parsed.blogPosts.length} blog post${parsed.blogPosts.length > 1 ? 's' : ''}`;
+      }
+      if (parsed.deletedPages.length > 0) {
+        statusMsg = '🗑️ Removing page and updating site...';
+      }
+      if (parsed.deletedBlogPosts.length > 0) {
+        statusMsg = '🗑️ Removing blog post and updating site...';
+      }
+      statusMsg += '...';
+      
+      await sendMessage(chatId, statusMsg);
       await sendChatAction(chatId, 'typing');
 
-      // Deploy
-      const { repoName, deployUrl } = await deployHtml(html, state.repoName, text);
-      if (isNewSite) await incrementSitesCreated(chatId);
+      // Apply changes and deploy
+      const { deployUrl, isNewSite: wasNewSite } = await applyChanges(chatId, state, parsed, text);
+      if (wasNewSite) await incrementSitesCreated(chatId);
 
-      // Update state
-      state.repoName = repoName;
-      state.currentHtml = html;
-      state.deployUrl = deployUrl;
-      state.deployCount += 1;
+      // Save state
       await setProjectState(chatId, state);
 
-      // Send the live URL
-      const prefix = displayText ? `${displayText}\n\n` : '';
-      await sendMessage(
-        chatId,
-        `${prefix}✅ <b>Your website is live!</b>\n\n🌐 ${deployUrl}\n\nSend a message to make changes.`
-      );
+      // Build success message
+      let successMsg = parsed.displayText ? `${parsed.displayText}\n\n` : '';
+      successMsg += `✅ <b>Your website is live!</b>\n\n🌐 ${deployUrl}`;
+      
+      if (parsed.blogPosts.length > 0) {
+        successMsg += `\n📝 Blog: ${deployUrl}/blog`;
+      }
+      
+      successMsg += '\n\nSend a message to make changes.';
+      
+      await sendMessage(chatId, successMsg);
     } else {
-      // No HTML — just a text response (probably asking a question)
+      // No structured content — just a text response
       await setProjectState(chatId, state);
-      await sendMessage(chatId, displayText || response);
+      await sendMessage(chatId, parsed.displayText || response);
     }
   } catch (error) {
     console.error('handleMessage error:', error);
@@ -242,10 +407,9 @@ export async function POST(req: NextRequest) {
   try {
     const update: TelegramUpdate = await req.json();
 
-    // Handle pre-checkout queries (must respond within 10 seconds)
+    // Handle pre-checkout queries
     if (update.pre_checkout_query) {
       const query = update.pre_checkout_query;
-      // Auto-approve all payments
       await answerPreCheckoutQuery(query.id, true);
       return NextResponse.json({ ok: true });
     }
@@ -272,21 +436,18 @@ export async function POST(req: NextRequest) {
       const chatId = update.message.chat.id;
       const caption = update.message.caption?.trim() || '';
       const photo = update.message.photo;
-      // Grab the largest size (last in array)
       const largestPhoto = photo[photo.length - 1];
 
       await sendChatAction(chatId, 'typing');
 
-      // Load state
       let state = await getProjectState(chatId);
       if (!state) {
-        state = { repoName: null, currentHtml: null, deployUrl: null, messages: [], deployCount: 0, images: [] };
+        state = createInitialState();
       }
       if (!state.images) state.images = [];
 
       // Need a repo to push images to
       if (!state.repoName) {
-        // Create repo early so we can store the image
         const repoName = generateRepoName(caption || 'my-site');
         await createGitHubRepo(repoName);
         state.repoName = repoName;
@@ -313,14 +474,12 @@ export async function POST(req: NextRequest) {
     if (update.message?.text) {
       const chatId = update.message.chat.id;
       const text = update.message.text.trim();
-
-      // Must await — Vercel kills the function after response is sent
       await handleMessage(chatId, text);
     }
 
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('Webhook error:', error);
-    return NextResponse.json({ ok: true }); // Always return 200 to Telegram
+    return NextResponse.json({ ok: true });
   }
 }
