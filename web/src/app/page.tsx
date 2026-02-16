@@ -11,16 +11,16 @@ export default function Home() {
           </p>
           
           <h1 className="text-5xl md:text-6xl font-semibold tracking-tight text-black mb-6">
-            Chat to Website
+            The AI Site Builder
           </h1>
           
           <p className="text-xl text-gray-600 mb-6 max-w-xl mx-auto leading-relaxed">
-            Describe your website. Get it live in 60 seconds.
+            Describe your website. Watch AI build it. Go live in 60 seconds.
           </p>
           
           <p className="text-lg text-gray-500 mb-12 max-w-lg mx-auto">
-            Tell our bot what you want. It builds a real, multi-page website 
-            with a blog and deploys it instantly.
+            No templates. No drag-and-drop. Just tell our AI what you want 
+            and get a real, multi-page website instantly deployed.
           </p>
         </div>
 
@@ -30,7 +30,7 @@ export default function Home() {
             href="/try"
             className="flex-1 text-center bg-black text-white px-6 py-3 rounded-md font-medium hover:bg-gray-900 transition"
           >
-            Try Web Chat
+            Build Your Site Free
           </Link>
           <a
             href="https://t.me/Chat2WebsiteNC_bot"
@@ -38,7 +38,7 @@ export default function Home() {
             rel="noopener noreferrer"
             className="flex-1 text-center border border-gray-200 text-black px-6 py-3 rounded-md font-medium hover:border-gray-400 transition"
           >
-            Use Telegram
+            Use Telegram Bot
           </a>
         </div>
         
@@ -54,18 +54,55 @@ export default function Home() {
       <section className="py-20">
         <div className="max-w-3xl mx-auto px-6">
           <div className="border border-gray-200 rounded-lg p-6 md:p-8">
-            <p className="text-sm text-gray-400 mb-4 text-center">Example conversation</p>
+            <p className="text-sm text-gray-400 mb-4 text-center">See it in action</p>
             <div className="space-y-4 max-w-md mx-auto">
               <div className="bg-gray-100 rounded-lg px-4 py-3 text-gray-900 text-sm">
-                Build a portfolio site for a photographer with a dark theme and a blog
+                Build a portfolio site for a photographer with a dark theme, gallery pages, and a blog
               </div>
               <div className="bg-black rounded-lg px-4 py-3 text-white text-sm ml-8">
                 Building your website now... ✨
               </div>
               <div className="bg-black rounded-lg px-4 py-3 text-white text-sm ml-8">
                 ✅ Your website is live!<br/>
-                <span className="text-gray-300">🌐 https://photo-portfolio-x7k2.vercel.app</span>
+                <span className="text-gray-300">🌐 photo-portfolio-x7k2.vercel.app</span><br/>
+                <span className="text-gray-400 text-xs mt-1 block">4 pages · blog ready · mobile responsive</span>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Divider */}
+      <div className="border-t border-gray-200" />
+
+      {/* How it's different */}
+      <section className="py-20">
+        <div className="max-w-3xl mx-auto px-6">
+          <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-8">
+            Not Another Website Builder
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="border border-gray-200 rounded-lg p-6">
+              <h3 className="font-semibold text-gray-400 mb-4 line-through">Traditional Builders</h3>
+              <ul className="space-y-3 text-sm text-gray-500">
+                <li className="flex items-start gap-2"><span>❌</span> Pick a template</li>
+                <li className="flex items-start gap-2"><span>❌</span> Drag and drop blocks</li>
+                <li className="flex items-start gap-2"><span>❌</span> Write all the copy yourself</li>
+                <li className="flex items-start gap-2"><span>❌</span> Configure settings for hours</li>
+                <li className="flex items-start gap-2"><span>❌</span> $15-30/month subscription</li>
+              </ul>
+            </div>
+            
+            <div className="border border-black rounded-lg p-6 bg-black text-white">
+              <h3 className="font-semibold mb-4">The AI Site Builder</h3>
+              <ul className="space-y-3 text-sm text-gray-300">
+                <li className="flex items-start gap-2"><span>✓</span> Describe what you want</li>
+                <li className="flex items-start gap-2"><span>✓</span> AI creates unique design</li>
+                <li className="flex items-start gap-2"><span>✓</span> AI writes your content</li>
+                <li className="flex items-start gap-2"><span>✓</span> Live in under 60 seconds</li>
+                <li className="flex items-start gap-2"><span>✓</span> Start free, pay only when you need more</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -86,7 +123,7 @@ export default function Home() {
               <span className="text-xl">📄</span>
               <div>
                 <h3 className="font-semibold text-black mb-1">Multi-Page Websites</h3>
-                <p className="text-gray-600">Home, About, Contact, Services — add as many pages as you need.</p>
+                <p className="text-gray-600">Home, About, Contact, Services, Portfolio — as many pages as you need. Not a single-page limitation.</p>
               </div>
             </div>
             
@@ -94,15 +131,15 @@ export default function Home() {
               <span className="text-xl">✍️</span>
               <div>
                 <h3 className="font-semibold text-black mb-1">Built-in Blog</h3>
-                <p className="text-gray-600">Say "write a blog post about X" and get a full article instantly.</p>
+                <p className="text-gray-600">Say "write a blog post about X" and get a full, SEO-friendly article. Build your content library via chat.</p>
               </div>
             </div>
             
             <div className="flex items-start gap-4">
               <span className="text-xl">🎨</span>
               <div>
-                <h3 className="font-semibold text-black mb-1">Custom Design</h3>
-                <p className="text-gray-600">The AI creates unique designs, not cookie-cutter templates.</p>
+                <h3 className="font-semibold text-black mb-1">Unique Designs</h3>
+                <p className="text-gray-600">No cookie-cutter templates. The AI creates a custom design based on your description and industry.</p>
               </div>
             </div>
             
@@ -110,7 +147,7 @@ export default function Home() {
               <span className="text-xl">📱</span>
               <div>
                 <h3 className="font-semibold text-black mb-1">Mobile Responsive</h3>
-                <p className="text-gray-600">Every site looks great on phones, tablets, and desktops.</p>
+                <p className="text-gray-600">Every site looks great on phones, tablets, and desktops. No extra work required.</p>
               </div>
             </div>
             
@@ -118,15 +155,23 @@ export default function Home() {
               <span className="text-xl">🚀</span>
               <div>
                 <h3 className="font-semibold text-black mb-1">Instant Deploy</h3>
-                <p className="text-gray-600">Your site goes live immediately on a .vercel.app URL.</p>
+                <p className="text-gray-600">Your site goes live immediately. No waiting, no manual publishing, no configuration.</p>
               </div>
             </div>
             
             <div className="flex items-start gap-4">
               <span className="text-xl">🎤</span>
               <div>
-                <h3 className="font-semibold text-black mb-1">Voice Messages</h3>
-                <p className="text-gray-600">Send a voice note — we transcribe and build what you describe.</p>
+                <h3 className="font-semibold text-black mb-1">Voice Input</h3>
+                <p className="text-gray-600">Send a voice note describing your site. We transcribe it and build exactly what you described.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <span className="text-xl">💻</span>
+              <div>
+                <h3 className="font-semibold text-black mb-1">Real Code, Real Ownership</h3>
+                <p className="text-gray-600">Your site is real Next.js code in GitHub. Export it anytime. No vendor lock-in.</p>
               </div>
             </div>
           </div>
@@ -146,9 +191,9 @@ export default function Home() {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="text-2xl mb-3">01</div>
-              <h3 className="font-semibold text-black mb-2">Open the bot</h3>
+              <h3 className="font-semibold text-black mb-2">Start chatting</h3>
               <p className="text-gray-600 text-sm">
-                Click the link. No signup, no email, just start chatting.
+                Open the web chat or Telegram bot. No account needed.
               </p>
             </div>
             
@@ -156,7 +201,7 @@ export default function Home() {
               <div className="text-2xl mb-3">02</div>
               <h3 className="font-semibold text-black mb-2">Describe your site</h3>
               <p className="text-gray-600 text-sm">
-                "A portfolio for a UX designer with case studies"
+                "A portfolio for a UX designer with case studies and dark mode"
               </p>
             </div>
             
@@ -164,15 +209,15 @@ export default function Home() {
               <div className="text-2xl mb-3">03</div>
               <h3 className="font-semibold text-black mb-2">AI builds it</h3>
               <p className="text-gray-600 text-sm">
-                Multiple pages, real content, professional design.
+                Multiple pages, real content, custom design — all generated.
               </p>
             </div>
             
             <div>
               <div className="text-2xl mb-3">04</div>
-              <h3 className="font-semibold text-black mb-2">It's live</h3>
+              <h3 className="font-semibold text-black mb-2">You're live</h3>
               <p className="text-gray-600 text-sm">
-                Get a public URL instantly. Share it anywhere.
+                Get your URL instantly. Share it with the world.
               </p>
             </div>
           </div>
@@ -191,12 +236,15 @@ export default function Home() {
           
           <div className="grid md:grid-cols-3 gap-6">
             {[
-              { emoji: '📸', title: 'Photography Portfolio', prompt: '"Portfolio for a wedding photographer with galleries"' },
-              { emoji: '🏪', title: 'Local Business', prompt: '"Website for a coffee shop with menu and hours"' },
-              { emoji: '💼', title: 'Freelancer Site', prompt: '"Personal site for a copywriter with case studies"' },
-              { emoji: '🚀', title: 'Startup Landing', prompt: '"Landing page for an AI tool with pricing"' },
-              { emoji: '🎓', title: 'Course Page', prompt: '"Site for a workshop with schedule and pricing"' },
-              { emoji: '👨‍💻', title: 'Developer Portfolio', prompt: '"Portfolio with GitHub projects and blog"' },
+              { emoji: '📸', title: 'Photography Portfolio', prompt: '"Portfolio for a wedding photographer with dark theme and galleries"' },
+              { emoji: '🏪', title: 'Local Business', prompt: '"Website for my coffee shop with menu, hours, and location"' },
+              { emoji: '💼', title: 'Freelancer Site', prompt: '"Personal site for a copywriter with testimonials and case studies"' },
+              { emoji: '🚀', title: 'Startup Landing', prompt: '"Landing page for our AI tool with features and pricing"' },
+              { emoji: '🎓', title: 'Course/Workshop', prompt: '"Site for my photography workshop with schedule and signup"' },
+              { emoji: '👨‍💻', title: 'Developer Portfolio', prompt: '"Portfolio showing my GitHub projects and tech blog"' },
+              { emoji: '🍕', title: 'Restaurant', prompt: '"Website for Italian restaurant with menu and reservations"' },
+              { emoji: '🏋️', title: 'Fitness Coach', prompt: '"Personal trainer site with programs and booking"' },
+              { emoji: '🎵', title: 'Musician/Band', prompt: '"Band website with tour dates, music, and merch"' },
             ].map((item) => (
               <div key={item.title} className="border border-gray-200 rounded-lg p-5">
                 <span className="text-2xl mb-3 block">{item.emoji}</span>
@@ -215,45 +263,44 @@ export default function Home() {
       <section className="py-20">
         <div className="max-w-3xl mx-auto px-6">
           <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-8">
-            Pricing
+            Simple Pricing
           </h2>
           
           <div className="grid md:grid-cols-2 gap-8">
             <div className="border border-gray-200 rounded-lg p-6">
               <h3 className="font-semibold text-black text-lg mb-2">Free</h3>
-              <p className="text-gray-500 text-sm mb-6">Perfect for trying it out</p>
+              <p className="text-gray-500 text-sm mb-6">Try it out, no strings attached</p>
               <div className="text-3xl font-semibold text-black mb-6">$0</div>
               <ul className="space-y-3 text-sm text-gray-600 mb-8">
                 <li className="flex items-center gap-2"><span className="text-black">→</span> 1 website</li>
-                <li className="flex items-center gap-2"><span className="text-black">→</span> 20 updates</li>
+                <li className="flex items-center gap-2"><span className="text-black">→</span> 20 updates/edits</li>
                 <li className="flex items-center gap-2"><span className="text-black">→</span> Multi-page support</li>
                 <li className="flex items-center gap-2"><span className="text-black">→</span> Blog included</li>
+                <li className="flex items-center gap-2"><span className="text-black">→</span> Voice input</li>
               </ul>
-              <a
-                href="https://t.me/Chat2WebsiteNC_bot"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/try"
                 className="block w-full text-center border border-gray-200 text-black px-6 py-3 rounded-md font-medium hover:border-gray-400 transition"
               >
                 Start Free
-              </a>
+              </Link>
             </div>
             
             <div className="border border-black rounded-lg p-6 bg-black text-white">
               <h3 className="font-semibold text-lg mb-2">Credit Packs</h3>
-              <p className="text-gray-400 text-sm mb-6">Buy credits for more sites and updates</p>
-              <div className="text-3xl font-semibold mb-6">From $5</div>
+              <p className="text-gray-400 text-sm mb-6">More sites, more updates, more power</p>
+              <div className="text-3xl font-semibold mb-6">From ₹400</div>
               <ul className="space-y-3 text-sm text-gray-300 mb-8">
-                <li className="flex items-center gap-2"><span className="text-white">→</span> 50 credits — $5</li>
-                <li className="flex items-center gap-2"><span className="text-white">→</span> 200 credits — $15</li>
-                <li className="flex items-center gap-2"><span className="text-white">→</span> 500 credits — $30</li>
-                <li className="flex items-center gap-2"><span className="text-white">→</span> Pay with card or UPI</li>
+                <li className="flex items-center gap-2"><span className="text-white">→</span> Starter: ₹400 / $5 — 50 credits</li>
+                <li className="flex items-center gap-2"><span className="text-white">→</span> Builder: ₹1,200 / $15 — 200 credits</li>
+                <li className="flex items-center gap-2"><span className="text-white">→</span> Pro: ₹2,400 / $30 — 500 credits</li>
+                <li className="flex items-center gap-2"><span className="text-white">→</span> UPI, cards, international accepted</li>
               </ul>
               <Link
-                href="/try"
+                href="/pricing"
                 className="block w-full text-center bg-white text-black px-6 py-3 rounded-md font-medium hover:bg-gray-100 transition"
               >
-                Get Credits
+                View Full Pricing
               </Link>
             </div>
           </div>
@@ -274,23 +321,27 @@ export default function Home() {
             {[
               {
                 q: 'Do I need to know how to code?',
-                a: 'No. Just describe what you want in plain English.'
+                a: 'Absolutely not. Just describe what you want in plain English (or send a voice note). The AI handles everything.'
               },
               {
                 q: 'Can I use my own domain?',
-                a: 'Custom domains are coming soon. For now, you get a free .vercel.app URL.'
+                a: 'Custom domains are coming soon! For now, you get a free .vercel.app URL that works perfectly.'
               },
               {
                 q: 'What if I want to change something?',
-                a: 'Just send another message. Changes deploy instantly.'
+                a: 'Just send another message like "make the header blue" or "add a testimonials section." Changes deploy instantly.'
               },
               {
                 q: 'Is the website really mine?',
-                a: 'Yes. The code is in GitHub. Export and self-host anytime.'
+                a: 'Yes. The code lives in GitHub. You can export it, modify it, or self-host it anytime. No lock-in.'
               },
               {
                 q: 'How does the blog work?',
-                a: 'Say "write a blog post about X" — the AI creates a full article.'
+                a: 'Say "write a blog post about X" and the AI creates a full, formatted article. Great for SEO and content marketing.'
+              },
+              {
+                q: 'What counts as a "credit"?',
+                a: 'Each AI interaction (building, updating, adding pages, writing posts) uses credits. See the pricing page for details.'
               },
             ].map((faq) => (
               <div key={faq.q} className="border-b border-gray-100 pb-6">
@@ -311,15 +362,15 @@ export default function Home() {
           <h2 className="text-3xl font-semibold text-black mb-4">
             Your website is one message away
           </h2>
-          <p className="text-gray-600 mb-8">
-            Stop overthinking. Start building. Go live today.
+          <p className="text-gray-600 mb-8 max-w-md mx-auto">
+            Stop procrastinating. Stop overthinking. Describe what you want and be live in 60 seconds.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
             <Link
               href="/try"
               className="flex-1 text-center bg-black text-white px-6 py-3 rounded-md font-medium hover:bg-gray-900 transition"
             >
-              Try Web Chat
+              Build Your Site Free
             </Link>
             <a
               href="https://t.me/Chat2WebsiteNC_bot"
@@ -327,7 +378,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="flex-1 text-center border border-gray-200 text-black px-6 py-3 rounded-md font-medium hover:border-gray-400 transition"
             >
-              Use Telegram
+              Use Telegram Bot
             </a>
           </div>
         </div>
@@ -338,14 +389,14 @@ export default function Home() {
         <div className="max-w-3xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
-              <p className="font-semibold text-black">Chat to Website</p>
+              <p className="font-semibold text-black">The AI Site Builder</p>
               <p className="text-sm text-gray-400 mt-1">A product by The Yencee Labs</p>
             </div>
             <div className="flex flex-wrap gap-6 text-sm text-gray-400">
               <Link href="/pricing" className="hover:text-black transition">Pricing</Link>
               <Link href="/blog" className="hover:text-black transition">Blog</Link>
               <a href="https://t.me/Chat2WebsiteNC_bot" target="_blank" rel="noopener noreferrer" className="hover:text-black transition">Telegram</a>
-              <a href="https://twitter.com/yenceesanjeev" target="_blank" rel="noopener noreferrer" className="hover:text-black transition">Twitter</a>
+              <a href="https://twitter.com/yaboraiyan" target="_blank" rel="noopener noreferrer" className="hover:text-black transition">Twitter</a>
             </div>
           </div>
           <div className="flex flex-wrap gap-6 mt-6 text-sm text-gray-400">

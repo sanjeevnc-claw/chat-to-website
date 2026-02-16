@@ -6,13 +6,25 @@ let _supabase: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient {
   if (!_supabase) {
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!url || !serviceKey) {
       throw new Error("Supabase credentials not configured");
     }
-    _supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
+    
+    _supabase = createClient(url, serviceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      // New Supabase keys (sb_secret_*) need this header format
+      global: {
+        headers: {
+          apikey: serviceKey,
+        },
+      },
+    });
   }
   return _supabase;
 }
@@ -60,6 +72,7 @@ export interface Site {
   description: string | null;
   github_repo: string | null;
   vercel_url: string | null;
+  cloudflare_project: string | null;
   custom_domain: string | null;
   pages: Array<{ name: string; path: string }>;
   blog_posts: Array<{ title: string; slug: string }>;
@@ -281,15 +294,19 @@ export async function createSite(
 
 export async function updateSiteDeployed(
   siteId: string,
-  githubRepo: string,
   vercelUrl: string,
   pages: Array<{ name: string; path: string }>,
-  creditsUsed: number
+  creditsUsed: number,
+  options?: {
+    githubRepo?: string;
+    cloudflareProject?: string;
+  }
 ): Promise<Site> {
   const { data, error } = await supabase
     .from("sites")
     .update({
-      github_repo: githubRepo,
+      github_repo: options?.githubRepo || null,
+      cloudflare_project: options?.cloudflareProject || null,
       vercel_url: vercelUrl,
       pages,
       status: "deployed",
