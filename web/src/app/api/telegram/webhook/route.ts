@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TelegramUpdate, sendMessage, sendChatAction, sendInvoice, answerPreCheckoutQuery, downloadFile } from '@/lib/telegram';
+import { TelegramUpdate, sendMessage, sendChatAction, sendInvoice, answerPreCheckoutQuery, downloadFile, transcribeVoice } from '@/lib/telegram';
 import {
   getProjectState, setProjectState, resetProjectState,
   getUserUsage, incrementSitesCreated, canCreateSite, canUpdate,
@@ -468,6 +468,35 @@ export async function POST(req: NextRequest) {
         await handleMessage(chatId, caption);
       }
 
+      return NextResponse.json({ ok: true });
+    }
+
+    // Handle voice messages
+    if (update.message?.voice) {
+      const chatId = update.message.chat.id;
+      const voice = update.message.voice;
+      
+      await sendChatAction(chatId, 'typing');
+      await sendMessage(chatId, '🎤 Processing your voice message...');
+      
+      try {
+        const transcribedText = await transcribeVoice(voice.file_id);
+        
+        if (!transcribedText || transcribedText.trim().length === 0) {
+          await sendMessage(chatId, '❌ Could not understand the voice message. Please try again or type your request.');
+          return NextResponse.json({ ok: true });
+        }
+        
+        // Show what we heard
+        await sendMessage(chatId, `💬 I heard: "${transcribedText}"\n\nProcessing...`);
+        
+        // Process as regular text message
+        await handleMessage(chatId, transcribedText);
+      } catch (error) {
+        console.error('Voice transcription error:', error);
+        await sendMessage(chatId, '❌ Failed to process voice message. Please try again or type your request.');
+      }
+      
       return NextResponse.json({ ok: true });
     }
 

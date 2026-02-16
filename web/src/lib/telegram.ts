@@ -9,6 +9,14 @@ export interface TelegramPhotoSize {
   file_size?: number;
 }
 
+export interface TelegramVoice {
+  file_id: string;
+  file_unique_id: string;
+  duration: number;
+  mime_type?: string;
+  file_size?: number;
+}
+
 export interface TelegramUpdate {
   update_id: number;
   message?: {
@@ -18,6 +26,7 @@ export interface TelegramUpdate {
     text?: string;
     caption?: string;
     photo?: TelegramPhotoSize[];
+    voice?: TelegramVoice;
     date: number;
     successful_payment?: {
       currency: string;
@@ -140,4 +149,45 @@ export async function setWebhook(url: string) {
     body: JSON.stringify({ url }),
   });
   return res.json();
+}
+
+/**
+ * Download voice file from Telegram and transcribe using OpenAI Whisper API
+ */
+export async function transcribeVoice(fileId: string): Promise<string> {
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+  if (!OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  // Download voice file from Telegram
+  const { buffer, extension } = await downloadFile(fileId);
+  
+  // Telegram voice messages are typically in .oga (Opus) format
+  // Whisper accepts: mp3, mp4, mpeg, mpga, m4a, wav, webm, ogg
+  const mimeType = extension === 'oga' || extension === 'ogg' ? 'audio/ogg' : `audio/${extension}`;
+  
+  // Create form data for Whisper API
+  const formData = new FormData();
+  const audioBlob = new Blob([buffer], { type: mimeType });
+  formData.append('file', audioBlob, `voice.${extension === 'oga' ? 'ogg' : extension}`);
+  formData.append('model', 'whisper-1');
+  formData.append('language', 'en'); // Can be auto-detected, but explicit is faster
+  
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: formData,
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Whisper API error:', errorText);
+    throw new Error(`Whisper transcription failed: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  return data.text || '';
 }
