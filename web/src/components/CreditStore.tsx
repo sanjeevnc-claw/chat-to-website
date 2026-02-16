@@ -7,13 +7,15 @@ interface CreditPackage {
   credits: number;
   priceUSD: number;
   priceINR: number;
+  displayUSD: string;
+  displayINR: string;
   popular?: boolean;
 }
 
 const PACKAGES: CreditPackage[] = [
-  { id: 'starter', credits: 50, priceUSD: 1.99, priceINR: 99 },
-  { id: 'builder', credits: 200, priceUSD: 4.99, priceINR: 299, popular: true },
-  { id: 'pro', credits: 500, priceUSD: 9.99, priceINR: 499 },
+  { id: 'starter', credits: 50, priceUSD: 5, priceINR: 400, displayUSD: '$5', displayINR: '₹400' },
+  { id: 'builder', credits: 200, priceUSD: 15, priceINR: 1200, displayUSD: '$15', displayINR: '₹1,200', popular: true },
+  { id: 'pro', credits: 500, priceUSD: 30, priceINR: 2400, displayUSD: '$30', displayINR: '₹2,400' },
 ];
 
 interface CreditStoreProps {
@@ -28,7 +30,6 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
 
   useEffect(() => {
     // Detect location for payment provider selection
-    // In production, this would be a proper GeoIP lookup
     const detectLocation = async () => {
       try {
         const response = await fetch('https://ipapi.co/json/');
@@ -53,10 +54,7 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
         body: JSON.stringify({
           sessionId,
           packageId: pkg.id,
-          credits: pkg.credits,
           provider: isIndia ? 'dodo' : 'stripe',
-          amount: isIndia ? pkg.priceINR : pkg.priceUSD,
-          currency: isIndia ? 'INR' : 'USD',
         }),
       });
 
@@ -66,12 +64,9 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
         throw new Error(data.error);
       }
 
-      // Redirect to checkout URL or open overlay
+      // Redirect to checkout URL
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
-      } else if (data.message) {
-        // Placeholder message for demo
-        setError(data.message);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start checkout');
@@ -87,16 +82,16 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
         Each message costs 1 credit. Credits never expire.
       </p>
 
-      {/* Location toggle for testing */}
+      {/* Location indicator */}
       <div className="flex items-center gap-2 mb-6 text-xs">
-        <span className="text-gray-400">Payment provider:</span>
+        <span className="text-gray-400">Paying from:</span>
         <button
           onClick={() => setIsIndia(false)}
           className={`px-3 py-1 rounded-full transition ${
             !isIndia ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
           }`}
         >
-          🌍 Stripe (Global)
+          🌍 Global
         </button>
         <button
           onClick={() => setIsIndia(true)}
@@ -104,7 +99,7 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
             isIndia ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
           }`}
         >
-          🇮🇳 Dodo (India)
+          🇮🇳 India
         </button>
       </div>
 
@@ -128,11 +123,11 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
             <div>
               <p className="font-semibold text-gray-900">{pkg.credits} Credits</p>
               <p className="text-sm text-gray-500">
-                {isIndia ? `₹${pkg.priceINR}` : `$${pkg.priceUSD}`}
+                {isIndia ? pkg.displayINR : pkg.displayUSD}
                 <span className="text-gray-400 ml-1">
                   ({isIndia
-                    ? `₹${(pkg.priceINR / pkg.credits).toFixed(2)}`
-                    : `$${(pkg.priceUSD / pkg.credits).toFixed(3)}`}/credit)
+                    ? `₹${(pkg.priceINR / pkg.credits).toFixed(1)}`
+                    : `$${(pkg.priceUSD / pkg.credits).toFixed(2)}`}/credit)
                 </span>
               </p>
             </div>
@@ -164,7 +159,6 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
                     />
                   </svg>
-                  Processing...
                 </span>
               ) : (
                 'Buy'
