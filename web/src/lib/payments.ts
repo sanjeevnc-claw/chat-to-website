@@ -1,6 +1,5 @@
 import Stripe from "stripe";
 import {
-  supabase,
   createPayment,
   completePayment,
   addCredits,
@@ -38,12 +37,22 @@ export const CREDIT_PACKAGES = {
 export type PackageId = keyof typeof CREDIT_PACKAGES;
 
 // ============================================
-// STRIPE
+// STRIPE (lazy init)
 // ============================================
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-02-24.acacia",
-});
+let _stripe: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error("Stripe not configured");
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-02-24.acacia",
+    });
+  }
+  return _stripe;
+}
 
 export async function createStripeCheckout(
   userId: string,
@@ -52,6 +61,7 @@ export async function createStripeCheckout(
   cancelUrl: string
 ): Promise<string> {
   const pkg = CREDIT_PACKAGES[packageId];
+  const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -97,6 +107,7 @@ export async function handleStripeWebhook(
   signature: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const stripe = getStripe();
     const event = stripe.webhooks.constructEvent(
       payload,
       signature,

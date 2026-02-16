@@ -169,7 +169,7 @@ export async function transcribeVoice(fileId: string): Promise<string> {
   
   // Create form data for Whisper API
   const formData = new FormData();
-  const audioBlob = new Blob([buffer], { type: mimeType });
+  const audioBlob = new Blob([new Uint8Array(buffer)], { type: mimeType });
   formData.append('file', audioBlob, `voice.${extension === 'oga' ? 'ogg' : extension}`);
   formData.append('model', 'whisper-1');
   formData.append('language', 'en'); // Can be auto-detected, but explicit is faster
