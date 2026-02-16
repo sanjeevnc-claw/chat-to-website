@@ -341,11 +341,16 @@ export default function Home() {
               <p className="font-semibold text-black">Chat to Website</p>
               <p className="text-sm text-gray-400 mt-1">A product by The Yencee Labs</p>
             </div>
-            <div className="flex gap-6 text-sm text-gray-400">
+            <div className="flex flex-wrap gap-6 text-sm text-gray-400">
               <Link href="/blog" className="hover:text-black transition">Blog</Link>
               <a href="https://t.me/Chat2WebsiteNC_bot" target="_blank" rel="noopener noreferrer" className="hover:text-black transition">Telegram</a>
               <a href="https://twitter.com/yenceesanjeev" target="_blank" rel="noopener noreferrer" className="hover:text-black transition">Twitter</a>
             </div>
+          </div>
+          <div className="flex flex-wrap gap-6 mt-6 text-sm text-gray-400">
+            <Link href="/privacy" className="hover:text-black transition">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-black transition">Terms of Service</Link>
+            <Link href="/refund" className="hover:text-black transition">Refund Policy</Link>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-100 text-sm text-gray-400">
             © {new Date().getFullYear()} The Yencee Labs. Built by humans + AI.
