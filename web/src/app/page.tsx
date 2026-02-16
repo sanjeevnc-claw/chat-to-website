@@ -342,6 +342,7 @@ export default function Home() {
               <p className="text-sm text-gray-400 mt-1">A product by The Yencee Labs</p>
             </div>
             <div className="flex flex-wrap gap-6 text-sm text-gray-400">
+              <Link href="/pricing" className="hover:text-black transition">Pricing</Link>
               <Link href="/blog" className="hover:text-black transition">Blog</Link>
               <a href="https://t.me/Chat2WebsiteNC_bot" target="_blank" rel="noopener noreferrer" className="hover:text-black transition">Telegram</a>
               <a href="https://twitter.com/yenceesanjeev" target="_blank" rel="noopener noreferrer" className="hover:text-black transition">Twitter</a>
