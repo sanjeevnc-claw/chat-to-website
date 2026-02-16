@@ -76,30 +76,30 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-      <h3 className="font-bold text-lg text-gray-900 mb-2">Buy Credits</h3>
+    <div className="border border-gray-200 rounded-lg p-6">
+      <h3 className="font-semibold text-black mb-1">Buy Credits</h3>
       <p className="text-sm text-gray-500 mb-6">
         Each message costs 1 credit. Credits never expire.
       </p>
 
-      {/* Location indicator */}
+      {/* Location toggle */}
       <div className="flex items-center gap-2 mb-6 text-xs">
-        <span className="text-gray-400">Paying from:</span>
+        <span className="text-gray-400">Region:</span>
         <button
           onClick={() => setIsIndia(false)}
-          className={`px-3 py-1 rounded-full transition ${
-            !isIndia ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+          className={`px-3 py-1 rounded-md transition ${
+            !isIndia ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
           }`}
         >
-          🌍 Global
+          Global
         </button>
         <button
           onClick={() => setIsIndia(true)}
-          className={`px-3 py-1 rounded-full transition ${
-            isIndia ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+          className={`px-3 py-1 rounded-md transition ${
+            isIndia ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'
           }`}
         >
-          🇮🇳 India
+          India
         </button>
       </div>
 
@@ -108,20 +108,20 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
         {PACKAGES.map((pkg) => (
           <div
             key={pkg.id}
-            className={`relative flex items-center justify-between p-4 rounded-xl border-2 transition ${
+            className={`relative flex items-center justify-between p-4 rounded-lg border transition ${
               pkg.popular
-                ? 'border-blue-500 bg-blue-50'
+                ? 'border-black'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >
             {pkg.popular && (
-              <span className="absolute -top-2 left-4 bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                BEST VALUE
+              <span className="absolute -top-2 left-4 bg-black text-white text-xs font-medium px-2 py-0.5 rounded">
+                Best value
               </span>
             )}
 
             <div>
-              <p className="font-semibold text-gray-900">{pkg.credits} Credits</p>
+              <p className="font-medium text-black">{pkg.credits} Credits</p>
               <p className="text-sm text-gray-500">
                 {isIndia ? pkg.displayINR : pkg.displayUSD}
                 <span className="text-gray-400 ml-1">
@@ -135,11 +135,11 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
             <button
               onClick={() => handlePurchase(pkg)}
               disabled={isLoading === pkg.id}
-              className={`px-5 py-2 rounded-lg font-medium transition ${
+              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
                 pkg.popular
-                  ? 'bg-blue-600 text-white hover:bg-blue-700'
-                  : 'bg-gray-900 text-white hover:bg-gray-800'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  ? 'bg-black text-white hover:bg-gray-900'
+                  : 'border border-gray-200 text-black hover:border-gray-400'
+              } disabled:opacity-50`}
             >
               {isLoading === pkg.id ? (
                 <span className="flex items-center gap-2">
@@ -169,13 +169,13 @@ export default function CreditStore({ sessionId, onPurchaseComplete }: CreditSto
       </div>
 
       {error && (
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        <div className="mt-4 p-3 border border-gray-200 rounded-md text-sm text-gray-600">
           {error}
         </div>
       )}
 
       <p className="text-xs text-gray-400 mt-6 text-center">
-        Secure payment via {isIndia ? 'Dodo Payments (UPI, Cards)' : 'Stripe'}
+        Secure payment via {isIndia ? 'Dodo Payments' : 'Stripe'}
       </p>
     </div>
   );

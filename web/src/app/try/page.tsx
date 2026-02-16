@@ -42,35 +42,34 @@ export default function TryPage() {
 
   if (!sessionId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin w-6 h-6 border-2 border-black border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-gray-900">Chat to Website</span>
+      <header className="border-b border-gray-200 sticky top-0 z-50 bg-white">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="font-semibold text-black hover:text-gray-600 transition">
+            Chat to Website
           </Link>
 
           <div className="flex items-center gap-4">
             {/* Credits indicator */}
             <button
               onClick={() => setShowStore(!showStore)}
-              className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full transition"
+              className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-md transition text-sm"
             >
-              <span className="text-lg">🪙</span>
-              <span className="font-semibold text-gray-900">{credits}</span>
-              <span className="text-gray-500 text-sm">credits</span>
+              <span className="font-medium text-black">{credits}</span>
+              <span className="text-gray-500">credits</span>
             </button>
 
             <button
               onClick={() => setShowStore(!showStore)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition"
+              className="bg-black text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-900 transition"
             >
               Buy Credits
             </button>
@@ -79,16 +78,16 @@ export default function TryPage() {
               href="https://t.me/Chat2WebsiteNC_bot"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-500 hover:text-gray-700 text-sm"
+              className="text-gray-500 hover:text-black text-sm transition hidden md:block"
             >
-              Use Telegram instead →
+              Use Telegram →
             </a>
           </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <main className="max-w-5xl mx-auto px-6 py-6">
         <div className="flex gap-6">
           {/* Chat section */}
           <div className="flex-1">
@@ -103,7 +102,7 @@ export default function TryPage() {
 
           {/* Credit store sidebar (toggle on mobile) */}
           {showStore && (
-            <div className="w-80 flex-shrink-0">
+            <div className="w-80 flex-shrink-0 hidden md:block">
               <CreditStore
                 sessionId={sessionId}
                 onPurchaseComplete={(newCredits) => {
@@ -112,11 +111,10 @@ export default function TryPage() {
                 }}
               />
 
-              <div className="mt-4 p-4 bg-blue-50 rounded-xl">
-                <h4 className="font-semibold text-blue-900 mb-2">💡 Free trial</h4>
-                <p className="text-sm text-blue-700">
+              <div className="mt-4 p-4 border border-gray-200 rounded-lg">
+                <h4 className="font-medium text-black mb-2">Free trial</h4>
+                <p className="text-sm text-gray-600">
                   You get 5 free credits to try. Each message costs 1 credit.
-                  Buy more when you need them!
                 </p>
               </div>
             </div>
@@ -126,12 +124,12 @@ export default function TryPage() {
 
       {/* Mobile credit store modal */}
       {showStore && (
-        <div className="fixed inset-0 bg-black/50 z-50 md:hidden" onClick={() => setShowStore(false)}>
+        <div className="fixed inset-0 bg-black/30 z-50 md:hidden" onClick={() => setShowStore(false)}>
           <div
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 max-h-[80vh] overflow-y-auto"
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+            <div className="w-12 h-1 bg-gray-200 rounded-full mx-auto mb-6" />
             <CreditStore
               sessionId={sessionId}
               onPurchaseComplete={(newCredits) => {
